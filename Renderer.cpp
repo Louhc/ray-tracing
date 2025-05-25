@@ -31,7 +31,10 @@ void Renderer::Render(const Scene& scene,bool check_mode)
 
             // Don't forget to normalize this direction!
             
-            Ray ray(Vector3f(0,0,0),Vector3f(0,0,0));
+            float x = (2 * (i + 0.5) / scene.width - 1) * imageAspectRatio * scale;
+            float y = (1 - 2 * (j + 0.5) / scene.height) * scale;
+            Vector3f dir = normalize(Vector3f(x, -y, -1) - eye_pos);
+            Ray ray(eye_pos, dir);
 
 
             if(check_mode)
