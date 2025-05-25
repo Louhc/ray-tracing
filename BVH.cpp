@@ -108,9 +108,9 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     Intersection result;
     result.happened = false;
     auto direction_inv_neg = std::array<int, 3> {{
-        int(ray.direction.x > 0),
-        int(ray.direction.y > 0),
-        int(ray.direction.z > 0), 
+        int(ray.direction.x < 0),
+        int(ray.direction.y < 0),
+        int(ray.direction.z < 0), 
     }};
 
     if (!node->bounds.IntersectP(ray, ray.direction_inv, direction_inv_neg))
