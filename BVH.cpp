@@ -107,10 +107,11 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     // TODO Traverse the BVH to find intersection
     Intersection result;
     result.happened = false;
-    std::array<int, 3> direction_inv_neg;
-    direction_inv_neg[0] = ray.direction.x < 0;
-    direction_inv_neg[1] = ray.direction.y < 0;
-    direction_inv_neg[2] = ray.direction.z < 0;
+    auto direction_inv_neg = std::array<int, 3> {{
+        int(ray.direction.x > 0),
+        int(ray.direction.y > 0),
+        int(ray.direction.z > 0), 
+    }};
 
     if (!node->bounds.IntersectP(ray, ray.direction_inv, direction_inv_neg))
         return result;

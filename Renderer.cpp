@@ -33,7 +33,7 @@ void Renderer::Render(const Scene& scene,bool check_mode)
             
             float x = (2 * (i + 0.5) / scene.width - 1) * imageAspectRatio * scale;
             float y = (1 - 2 * (j + 0.5) / scene.height) * scale;
-            Vector3f dir = normalize(Vector3f(x, -y, -1) - eye_pos);
+            Vector3f dir = normalize(Vector3f(x, y, -1));
             Ray ray(eye_pos, dir);
 
 
