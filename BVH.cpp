@@ -86,26 +86,21 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
             middling = objects.begin() + (objects.size() / 2);
             ending = objects.end();
         } else if ( splitMethod == SplitMethod::SAH ) {
-            int B = 10; printf( " Hello? I am SAH!\n" );
+            int B = 10;
             float SN = centroidBounds.SurfaceArea();
             int mincostIndex = 0;
             float minCost = std::numeric_limits<float>::infinity();
             
             for (int i = 1; i < B; i++){
-                beginning = objects.begin();
-                middling = objects.begin() + (objects.size() * i / B);
-                ending = objects.end();
+                int pos = objects.size() * i / B;
                 Bounds3 leftBounds, rightBounds;
-
-                for ( auto k = beginning; k != middling; ++k )
-                    leftBounds = Union(leftBounds, (*k)->getBounds().Centroid());
-                for ( auto k = middling; k != ending; ++k )
-                    rightBounds = Union(rightBounds, (*k)->getBounds().Centroid());
-
+                for (int k = 0; k < pos; ++k)
+                    leftBounds = Union(leftBounds, objects[k]->getBounds().Centroid());
+                for (int k = pos; k < objects.size(); ++k)
+                    rightBounds = Union(rightBounds, objects[k]->getBounds().Centroid());
                 float SA = leftBounds.SurfaceArea();
                 float SB = rightBounds.SurfaceArea();
-                
-                float cost = 0.125 + ((middling - beginning) * SA + (ending - middling) * SB) / SN;
+                float cost = 0.125 + (pos * SA + (objects.size() - pos) * SB) / SN;
                 if (cost < minCost){
                     minCost = cost;
                     mincostIndex = i;
