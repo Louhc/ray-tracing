@@ -3,8 +3,8 @@
 #include "BVH.hpp"
 
 BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
-                   SplitMethod splitMethod)
-    : maxPrimsInNode(std::min(255, maxPrimsInNode)), splitMethod(splitMethod),
+                   SplitMethod method)
+    : maxPrimsInNode(std::min(255, maxPrimsInNode)), splitMethod(method),
       primitives(std::move(p))
 {
     time_t start, stop;
@@ -12,6 +12,7 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
     if (primitives.empty())
         return;
 
+    // printf( "This is construction, %d %d\n", (int)method, (int)splitMethod);
     root = recursiveBuild(primitives);
 
     time(&stop);
@@ -28,6 +29,9 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode,
 BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
 {
     BVHBuildNode* node = new BVHBuildNode();
+
+    // printf( "build,%d,", (int)splitMethod );
+    // exit(-1);
 
     // Compute bounds of all primitives in BVH node
     Bounds3 bounds;
@@ -75,9 +79,45 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects)
             break;
         }
 
-        auto beginning = objects.begin();
-        auto middling = objects.begin() + (objects.size() / 2);
-        auto ending = objects.end();
+        std::vector<Object* >::iterator beginning, middling, ending;
+
+        if ( splitMethod == SplitMethod::NAIVE ) {
+            beginning = objects.begin();
+            middling = objects.begin() + (objects.size() / 2);
+            ending = objects.end();
+        } else if ( splitMethod == SplitMethod::SAH ) {
+            int B = 10; printf( " Hello? I am SAH!\n" );
+            float SN = centroidBounds.SurfaceArea();
+            int mincostIndex = 0;
+            float minCost = std::numeric_limits<float>::infinity();
+            
+            for (int i = 1; i < B; i++){
+                beginning = objects.begin();
+                middling = objects.begin() + (objects.size() * i / B);
+                ending = objects.end();
+                Bounds3 leftBounds, rightBounds;
+
+                for ( auto k = beginning; k != middling; ++k )
+                    leftBounds = Union(leftBounds, (*k)->getBounds().Centroid());
+                for ( auto k = middling; k != ending; ++k )
+                    rightBounds = Union(rightBounds, (*k)->getBounds().Centroid());
+
+                float SA = leftBounds.SurfaceArea();
+                float SB = rightBounds.SurfaceArea();
+                
+                float cost = 0.125 + ((middling - beginning) * SA + (ending - middling) * SB) / SN;
+                if (cost < minCost){
+                    minCost = cost;
+                    mincostIndex = i;
+                }
+            }
+            
+            beginning = objects.begin();
+            middling = objects.begin() + (objects.size() * mincostIndex / B);
+            ending = objects.end();
+        } else {
+            assert(false && "Unknown BVH split method");
+        }
 
         auto leftshapes = std::vector<Object*>(beginning, middling);
         auto rightshapes = std::vector<Object*>(middling, ending);
@@ -107,6 +147,8 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     // TODO Traverse the BVH to find intersection
     Intersection result;
     result.happened = false;
+    if ( node == nullptr )
+        return result;
     auto direction_inv_neg = std::array<int, 3> {{
         int(ray.direction.x < 0),
         int(ray.direction.y < 0),
@@ -122,7 +164,9 @@ Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
     }
     Intersection hitLeft = getIntersection(node->left, ray);
     Intersection hitRight = getIntersection(node->right, ray);
-    if (hitLeft.distance < hitRight.distance)
+    if (!hitLeft.happened && !hitRight.happened)
+        return result;
+    if (!hitRight.happened || hitLeft.distance < hitRight.distance)
         return hitLeft;
     else
         return hitRight;
